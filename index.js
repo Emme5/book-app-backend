@@ -10,10 +10,10 @@ require('dotenv').config();
 
 app.use(express.json());
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://book-app-frontend-2w4o.vercel.app'
-    , 'https://book-app-backend-brown.vercel.app'
-  ],
-  credentials: true
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // routes
