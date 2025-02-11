@@ -20,13 +20,25 @@ const router = express.Router();
 
 // post a book
 router.post("/create-book", 
-    upload.fields([
-        { name: 'coverImage', maxCount: 1 },
-        { name: 'coverImages', maxCount: 4 }
-    ]),
+    // เพิ่ม error handling สำหรับ upload middleware
+    (req, res, next) => {
+        upload.fields([
+            { name: 'coverImage', maxCount: 1 },
+            { name: 'coverImages', maxCount: 4 }
+        ])(req, res, (err) => {
+            if (err) {
+                console.error('Upload error:', err);
+                return res.status(400).json({ 
+                    message: "Error uploading files",
+                    error: err.message 
+                });
+            }
+            next();
+        });
+    },
     verifyAdminToken, 
     postABook
-)
+);
 
 // get all books
 router.get("/", getAllBooks);
