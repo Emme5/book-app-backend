@@ -70,4 +70,52 @@ router.get('/check-payment/:sessionId', async (req, res) => {
     }
 });
 
+router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
+    } catch (err) {
+        console.error(`Webhook Error: ${err.message}`);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // จัดการกับ events ต่างๆ
+    try {
+        switch (event.type) {
+            case 'checkout.session.completed':
+                const session = event.data.object;
+                const orderId = session.metadata.orderId;
+
+                // อัพเดทสถานะออเดอร์
+                await Order.findByIdAndUpdate(orderId, {
+                    status: 'กำลังจัดเตรียมสินค้า',
+                    paymentStatus: 'ชำระเงินแล้ว'
+                });
+                break;
+
+            case 'payment_intent.payment_failed':
+                const paymentIntent = event.data.object;
+                const failedOrderId = paymentIntent.metadata.orderId;
+
+                // อัพเดทสถานะเมื่อการชำระเงินล้มเหลว
+                await Order.findByIdAndUpdate(failedOrderId, {
+                    status: 'การชำระเงินล้มเหลว',
+                    paymentStatus: 'ล้มเหลว'
+                });
+                break;
+        }
+
+        res.json({ received: true });
+    } catch (err) {
+        console.error('Error processing webhook:', err);
+        res.status(500).send(`Webhook Error: ${err.message}`);
+    }
+});
+
 module.exports = router;
