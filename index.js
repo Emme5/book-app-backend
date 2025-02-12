@@ -1,8 +1,8 @@
 const express = require('express');
 const app = express();
-const path = require('path');
 const cors = require("cors");
 const mongoose = require('mongoose');
+const path = require('path');
 
 const port = process.env.PORT || 5000;
 require('dotenv').config();
@@ -32,10 +32,6 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/auth", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", stripeRoutes);
-
-// ตั้งค่า Static Folder
-const FILE_DIR = path.join(__dirname, 'public/uploads');
-app.use('/uploads', express.static(FILE_DIR));
 
 async function main() {
   await mongoose.connect(process.env.DB_URL);
