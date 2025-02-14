@@ -6,10 +6,10 @@ const Order = require('../orders/order.model');
 // สร้าง checkout session
 router.post('/create-checkout-session', async (req, res) => {
     try {
-        const { items } = req.body;
+        const { items, orderId } = req.body;
         
-        if (!items) {
-            return res.status(400).json({ error: 'Missing required fields' });
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'ไม่พบรายการสินค้า' });
         }
 
         const lineItems = items.map(item => ({
@@ -18,7 +18,7 @@ router.post('/create-checkout-session', async (req, res) => {
                 product_data: {
                     name: item.title,
                 },
-                unit_amount: Math.round(item.price * 100),
+                unit_amount: Math.round(item.price * 100), // แปลงเป็นสตางค์
             },
             quantity: item.quantity || 1,
         }));
@@ -30,14 +30,17 @@ router.post('/create-checkout-session', async (req, res) => {
             success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.CLIENT_URL}/cancel`,
             metadata: {
-                orderData: JSON.stringify(req.body) // เก็บข้อมูล order ทั้งหมด
+                orderId: orderId
             }
         });
 
         res.json({ sessionId: session.id });
     } catch (error) {
         console.error('Stripe error:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: error.message,
+            message: 'ไม่สามารถสร้าง checkout session ได้'
+        });
     }
 });
 
@@ -76,15 +79,21 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
 
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
-            const orderData = JSON.parse(session.metadata.orderData);
-
-            // สร้าง order เมื่อชำระเงินสำเร็จ
-            const newOrder = new Order({
-                ...orderData,
-                status: 'กำลังจัดเตรียมสินค้า',
-                paymentStatus: 'ชำระเงินแล้ว'
-            });
-            await newOrder.save();
+            // ตรวจสอบว่ามี orderId ใน metadata
+            if (session.metadata?.orderId) {
+                await Order.findByIdAndUpdate(
+                    session.metadata.orderId,
+                    {
+                        status: 'กำลังจัดเตรียมสินค้า',
+                        paymentStatus: 'ชำระเงินแล้ว',
+                        paymentDetails: {
+                            paymentId: session.payment_intent,
+                            paymentMethod: session.payment_method_types[0],
+                            paidAt: new Date()
+                        }
+                    }
+                );
+            }
         }
 
         res.json({ received: true });

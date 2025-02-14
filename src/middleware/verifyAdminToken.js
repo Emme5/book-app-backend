@@ -32,7 +32,8 @@ const verifyAdminToken = (req, res, next) => {
                     error: err.message
                 });
             }
-            if (!user.isAdmin) {
+            
+            if (user.role !== 'admin') {
                 return res.status(403).json({
                     message: "Access denied: Admin privileges required"
                 });

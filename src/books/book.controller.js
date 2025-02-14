@@ -45,14 +45,27 @@ const UpdateBook = async (req, res) => {
         const { id } = req.params;
         const updateData = { ...req.body };
 
+        // เพิ่มการตรวจสอบข้อมูลก่อนอัปเดต
+        const fieldsToUpdate = [
+            'title', 'description', 'category', 
+            'trending', 'oldPrice', 'newPrice'
+        ];
+
+        // กรองเฉพาะฟิลด์ที่ต้องการอัปเดต
+        const filteredUpdateData = {};
+        fieldsToUpdate.forEach(field => {
+            if (updateData[field] !== undefined) {
+                filteredUpdateData[field] = updateData[field];
+            }
+        });
+
         if (req.files) {
             if (req.files['coverImage']) {
                 const mainImageResult = await cloudinary.uploader.upload(
-                    // เปลี่ยนจาก path เป็น buffer
                     `data:${req.files.coverImage[0].mimetype};base64,${req.files.coverImage[0].buffer.toString('base64')}`,
                     { folder: "book-store" }
                 );
-                updateData.coverImage = mainImageResult.secure_url;
+                filteredUpdateData.coverImage = mainImageResult.secure_url;
             }
 
             if (req.files['coverImages']) {
@@ -64,8 +77,8 @@ const UpdateBook = async (req, res) => {
                         )
                     )
                 );
-                updateData.coverImages = [
-                    updateData.coverImage,
+                filteredUpdateData.coverImages = [
+                    filteredUpdateData.coverImage || updateData.coverImage,
                     ...newAdditionalImages.map(img => img.secure_url)
                 ];
             }
@@ -73,7 +86,7 @@ const UpdateBook = async (req, res) => {
 
         const updatedBook = await Book.findByIdAndUpdate(
             id, 
-            updateData,
+            filteredUpdateData,
             { new: true }
         );
 
