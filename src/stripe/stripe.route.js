@@ -12,6 +12,7 @@ router.post('/create-checkout-session', async (req, res) => {
             return res.status(400).json({ error: 'ไม่พบรายการสินค้า' });
         }
 
+        // กำหนด lineItems ก่อนใช้
         const lineItems = items.map(item => ({
             price_data: {
                 currency: 'thb',
@@ -27,8 +28,12 @@ router.post('/create-checkout-session', async (req, res) => {
             payment_method_types: ['card', 'promptpay'],
             line_items: lineItems,
             mode: 'payment',
-            success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.CLIENT_URL}/cancel`,
+            success_url: process.env.NODE_ENV === 'production'
+                ? 'https://book-app-frontend-chi.vercel.app/success?session_id={CHECKOUT_SESSION_ID}'
+                : 'http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url: process.env.NODE_ENV === 'production'
+                ? 'https://book-app-frontend-chi.vercel.app/cancel'
+                : 'http://localhost:5173/cancel',
             metadata: {
                 orderId: orderId
             }
@@ -38,8 +43,8 @@ router.post('/create-checkout-session', async (req, res) => {
     } catch (error) {
         console.error('Stripe error:', error);
         res.status(500).json({ 
-            error: error.message,
-            message: 'ไม่สามารถสร้าง checkout session ได้'
+            message: 'ไม่สามารถสร้าง checkout session ได้',
+            details: error.message
         });
     }
 });

@@ -10,13 +10,11 @@ const orderSchema = new mongoose.Schema({
         required: true,
     },
     address: {
-        city: {
-            type: String,
-            required: true,
-        },
-        country: String,
-        state: String,
-        zipcode: String,
+        fullAddress: String,
+        district: String,
+        amphure: String,
+        province: String,
+        zipcode: String
     },
     phone: {
         type: String,
@@ -40,7 +38,7 @@ const orderSchema = new mongoose.Schema({
     }
 }, {
     timestamps: true,
-})
+});
 
 const Order = mongoose.model('Order', orderSchema);
 

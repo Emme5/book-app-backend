@@ -1,13 +1,45 @@
 const Order = require("./order.model");
 
 const createAOrder = async (req, res) => {
-try {
-    const newOrder = await Order(req.body);
-    const savedOrder = await newOrder.save();
-    res.status(200).json(savedOrder);
+    try {
+        // เพิ่มการ log ข้อมูลที่ได้รับ
+        console.log("Request body:", req.body);
+
+        // ตรวจสอบข้อมูลที่จำเป็น
+        const { name, email, address, phone, productIds, totalPrice } = req.body;
+        
+        if (!name || !email || !phone || !productIds || !totalPrice || !address) {
+            return res.status(400).json({
+                message: "ข้อมูลไม่ครบถ้วน",
+                requiredFields: ["name", "email", "address", "phone", "productIds", "totalPrice"]
+            });
+        }
+
+        // สร้าง order ด้วยข้อมูลที่ตรวจสอบแล้ว
+        const newOrder = new Order({
+            name,
+            email,
+            address: {
+                fullAddress: address.fullAddress,
+                district: address.district,
+                amphure: address.amphure,
+                province: address.province,
+                zipcode: address.zipcode
+            },
+            phone,
+            productIds,
+            totalPrice: Number(totalPrice),
+            status: 'รอดำเนินการ'
+        });
+
+        const savedOrder = await newOrder.save();
+        res.status(201).json(savedOrder);
     } catch (error) {
-        console.error("Error creating order", error);
-        res.status(500).json({ message: "Failed to create order" });
+        console.error("Error in createAOrder:", error);
+        res.status(500).json({
+            message: "ไม่สามารถสร้างออเดอร์ได้",
+            error: error.message
+        });
     }
 };
 
