@@ -5,6 +5,10 @@ const bookSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    author: {
+        type: String,
+        required: true,
+    },
     description: {
         type: String,
         required: true,
@@ -16,6 +20,10 @@ const bookSchema = new mongoose.Schema({
     trending: {
         type: Boolean,
         required: true,
+    },
+    recommended: {
+        type: Boolean,
+        default: false  // ค่าเริ่มต้นเป็น false
     },
     coverImage: {
         type: String,

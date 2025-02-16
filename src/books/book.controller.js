@@ -47,8 +47,9 @@ const UpdateBook = async (req, res) => {
 
         // เพิ่มการตรวจสอบข้อมูลก่อนอัปเดต
         const fieldsToUpdate = [
-            'title', 'description', 'category', 
-            'trending', 'oldPrice', 'newPrice'
+            'title', 'author', 'description', 'category', 
+            'trending', 'recommended',
+            'oldPrice', 'newPrice'
         ];
 
         // กรองเฉพาะฟิลด์ที่ต้องการอัปเดต
@@ -117,14 +118,15 @@ const deleteABook = async (req, res) => {
         // ลบรูปจาก Cloudinary
         const imageUrls = [book.coverImage, ...book.coverImages];
         for (const url of imageUrls) {
+            // ดึง public_id จาก URL
             const publicId = url.split('/').pop().split('.')[0];
-            await cloudinary.uploader.destroy(publicId);
+            await cloudinary.uploader.destroy(`book-store/${publicId}`);
         }
 
         await Book.findByIdAndDelete(req.params.id);
-        res.status(200).send({ message: "Book deleted successfully" });
+        res.status(200).send({ message: "Book and images deleted successfully" });
     } catch (error) {
-        res.status(500).send({ message: "Failed to delete book" });
+        res.status(500).send({ message: "Failed to delete book and images" });
     }
 };
 
