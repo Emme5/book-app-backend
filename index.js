@@ -13,6 +13,7 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://book-app-frontend-chi.vercel.app',
+    'https://book-app-backend-alpha.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
