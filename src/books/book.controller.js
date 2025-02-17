@@ -1,5 +1,6 @@
-const Book = require("./book.model");
 const cloudinary = require('../config/cloudinary');
+const Favorite = require('../favorites/favorite.model');
+const { Book } = require('./book.model');
 
 const postABook = async (req, res) => {
     try {
@@ -173,5 +174,5 @@ module.exports = {
     getSingleBook,
     UpdateBook,
     deleteABook,
-    getBooksByIds
+    getBooksByIds,
 };

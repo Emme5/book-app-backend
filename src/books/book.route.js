@@ -1,11 +1,11 @@
 const express = require('express');
-const Book = require('./book.model');
+const { Book } = require('./book.model');
 const { postABook,
         getAllBooks,
         getSingleBook,
         UpdateBook,
         deleteABook,
-        getBooksByIds
+        getBooksByIds,
     } = require('./book.controller');
 const verifyAdminToken = require('../middleware/verifyAdminToken');
 const upload = require('../../storage');
