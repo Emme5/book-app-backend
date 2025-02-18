@@ -100,7 +100,18 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
                 );
             }
         }
-
+        if (event.type === 'payment_intent.payment_failed') {
+            const session = event.data.object;
+            if (session.metadata?.orderId) {
+              await Order.findByIdAndUpdate(
+                session.metadata.orderId,
+                {
+                  status: 'ยกเลิกการจัดส่ง',
+                  paymentStatus: 'ยกเลิก',
+                }
+              );
+            }
+          }
         res.json({ received: true });
     } catch (err) {
         console.error('Webhook Error:', err);
