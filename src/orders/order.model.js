@@ -35,7 +35,12 @@ const orderSchema = new mongoose.Schema({
         type: String,
         enum: ['รอดำเนินการ', 'กำลังจัดเตรียมสินค้า', 'กำลังจัดส่ง', 'จัดส่งสำเร็จ', 'มีปัญหาในการจัดส่ง', 'ยกเลิกการจัดส่ง' , 'ชำระเงินแล้ว'],
         default: 'รอดำเนินการ'
-    }
+    },
+    paymentStatus: {
+        type: String,
+        enum: ['pending', 'ชำระเงินแล้ว', 'ยกเลิก'],
+        default: 'pending'
+    },
 }, {
     timestamps: true,
 });
