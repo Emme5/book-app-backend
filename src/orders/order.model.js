@@ -38,7 +38,7 @@ const orderSchema = new mongoose.Schema({
     },
     paymentStatus: {
         type: String,
-        enum: ['pending', 'ชำระเงินแล้ว', 'ยกเลิก'],
+        enum: ['pending', 'ชำระเงินแล้ว', 'ยกเลิก', 'ชำระเงินปลายทาง'],
         default: 'pending'
     },
 }, {

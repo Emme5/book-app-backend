@@ -2,11 +2,9 @@ const Order = require("./order.model");
 
 const createAOrder = async (req, res) => {
     try {
-        // เพิ่มการ log ข้อมูลที่ได้รับ
         console.log("Request body:", req.body);
 
-        // ตรวจสอบข้อมูลที่จำเป็น
-        const { name, email, address, phone, productIds, totalPrice } = req.body;
+        const { name, email, address, phone, productIds, totalPrice, paymentStatus } = req.body;
         
         if (!name || !email || !phone || !productIds || !totalPrice || !address) {
             return res.status(400).json({
@@ -15,7 +13,6 @@ const createAOrder = async (req, res) => {
             });
         }
 
-        // สร้าง order ด้วยข้อมูลที่ตรวจสอบแล้ว
         const newOrder = new Order({
             name,
             email,
@@ -29,7 +26,8 @@ const createAOrder = async (req, res) => {
             phone,
             productIds,
             totalPrice: Number(totalPrice),
-            status: 'รอดำเนินการ'
+            status: 'รอดำเนินการ',
+            paymentStatus: paymentStatus || 'pending'  // เพิ่มบรรทัดนี้
         });
 
         const savedOrder = await newOrder.save();
@@ -91,6 +89,28 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
+const updatePaymentStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { paymentStatus } = req.body;
+        
+        const updatedOrder = await Order.findByIdAndUpdate(
+            orderId,
+            { paymentStatus },
+            { new: true }
+        );
+
+        if (!updatedOrder) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        res.status(200).json(updatedOrder);
+    } catch (error) {
+        console.error("Error updating payment status", error);
+        res.status(500).json({ message: "Failed to update payment status" });
+    }
+};
+
 const deleteOrder = async (req, res) => {
     try {
         const { orderId } = req.params;
@@ -112,5 +132,6 @@ module.exports = {
     getOrderByEmail,
     getAllOrders,
     updateOrderStatus,
-    deleteOrder
+    deleteOrder,
+    updatePaymentStatus
 }
