@@ -1,61 +1,97 @@
 const mongoose = require('mongoose');
 const express = require('express');
 const Order = require('../orders/order.model');
-const Book = require('../books/book.model');
+const { Book } = require('../books/book.model');
 const router = express.Router();
 
 
 // function to calculate admin stats
-router.get("/", async (req, res ) => {
+router.get("/", async (req, res) => {
     try {
-        // 1. Total number of orders
-        const totalOrders = await Order.countDocuments();
+        // เช็คการเชื่อมต่อ DB
+        console.log('MongoDB State:', mongoose.connection.readyState);
+        if (mongoose.connection.readyState !== 1) {
+            throw new Error('Database connection is not ready');
+        }
 
-        // 2.Total sales (sum of all totalPrice from orders)
-        const totalSales = await Order.aggregate([
-            {
-                $group: {
-                    _id: null,
-                    totalSales: { $sum: "$totalPrice" },
+        // เช็ค Model ว่ามีอยู่จริง
+        console.log('Models:', Object.keys(mongoose.models));
+        console.log('Book Model:', Book);
+        console.log('Order Model:', Order);
+
+        // ทดสอบ query แต่ละตัวแยกกัน
+        try {
+            const totalOrders = await Order.countDocuments();
+            console.log('Total Orders:', totalOrders);
+
+            const totalSalesResult = await Order.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        totalSales: { $sum: "$totalPrice" }
+                    }
                 }
-            }
-        ]);
+            ]);
+            console.log('Total Sales:', totalSalesResult);
 
-        // 3. Trending books statistics:
-        const trendingBooksCount = await Book.aggregate([
-            { $match: { trending: true} }, // Match only trending boooks
-            { $count: "trendingBooksCount" } // Return the count of trending books
-        ]);
+            const totalBooks = await Book.countDocuments();
+            console.log('Total Books:', totalBooks);
 
-        // if you want just the count as a number, you can extract it like this:
-        const trendingBooks = trendingBooksCount.length > 0 ? trendingBooksCount[0].trendingBooksCount : 0;
+            const trendingBooksCount = await Book.aggregate([
+                { $match: { trending: true } },
+                { $count: "trendingBooksCount" }
+            ]);
+            console.log('Trending Books:', trendingBooksCount);
 
-        // 4. Total number of books
-        const totalBooks = await Book.countDocuments();
+            const monthlySales = await Order.aggregate([
+                {
+                    $group: {
+                        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
+                        totalSales: { $sum: "$totalPrice" },
+                        totalOrders: { $sum: 1 }
+                    }
+                },
+                { $sort: { _id: 1 } }
+            ]);
+            console.log('Monthly Sales:', monthlySales);
 
-        // 5. Monthly sales (group by month and sum total sales for each month)
-        const monthlySales = await Order.aggregate([
-            {
-                $group: {
-                    _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, // Group by year and month
-                    totalSales: { $sum: "$totalPrice" }, // Sum totalPrice for each month
-                    totalOrders: { $sum: 1 } // Count total orders for each month
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
-        
-        // Resault summary
-        res.status(200).json({ totalOrders,
-            totalSales: totalSales[0]?.totalSales || 0,
-            trendingBooks,
-            totalBooks,
-            monthlySales, });
+            // ส่งข้อมูลกลับ
+            res.status(200).json({
+                totalOrders,
+                totalSales: totalSalesResult[0]?.totalSales ?? 0,
+                trendingBooks: trendingBooksCount[0]?.trendingBooksCount ?? 0,
+                trendingBooksPercentage: totalBooks > 0 
+                    ? ((trendingBooksCount[0]?.trendingBooksCount ?? 0) / totalBooks * 100).toFixed(1)
+                    : 0,
+                totalBooks,
+                monthlySales
+            });
 
-    }  catch (error) {
-        console.error("Error fetching admin stats:", error);
-        res.status(500).json({ message: "Failed to fetch admin stats"});
+        } catch (queryError) {
+            console.error('Query Error:', queryError);
+            throw queryError;
+        }
+
+    } catch (error) {
+        console.error("Detailed Error:", {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+
+        if (error.name === 'MongooseError') {
+            return res.status(500).json({
+                message: "Database error",
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            message: "Failed to fetch admin stats",
+            error: error.message,
+            details: error.stack
+        });
     }
-})
+});
 
 module.exports = router;
