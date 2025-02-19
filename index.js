@@ -7,7 +7,7 @@ const path = require('path');
 const port = process.env.PORT || 5000;
 require('dotenv').config();
 
-
+// Middleware
 app.use(express.json());
 app.use(cors({
   origin: [
@@ -27,6 +27,13 @@ app.use(cors({
   exposedHeaders: ['Set-Cookie']
 }));
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+      status: 'ok',
+      mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
 // routes
 const bookRoutes = require('./src/books/book.route');
 const orderRoutes = require('./src/orders/order.route');
@@ -35,20 +42,59 @@ const adminRoutes = require('./src/stats/admin.stats');
 const stripeRoutes = require('./src/stripe/stripe.route');
 const favoriteRoutes = require('./src/favorites/favorite.route');
 
+const verifyAdminToken = require('./src/middleware/verifyAdminToken');
+
+// เพิ่มหลัง routes ทั้งหมด
+app.use((err, req, res, next) => {
+  console.error('Global error:', err);
+  res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+  });
+});
+
 app.use("/api/books", bookRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/auth", userRoutes);
+app.use("/api/admin", verifyAdminToken, adminRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api", stripeRoutes);
 app.use("/api/favorites", favoriteRoutes);
 
-async function main() {
-  await mongoose.connect(process.env.DB_URL);
-  console.log('MongoDB connected');
+// MongoDB Connection
+async function connectDB() {
+  try {
+      await mongoose.connect(process.env.DB_URL, {
+          maxPoolSize: 10,
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 45000,
+          useNewUrlParser: true,
+          useUnifiedTopology: true
+      });
+      console.log('MongoDB connected successfully');
+      
+      // ทดสอบการเชื่อมต่อ
+      const collections = await mongoose.connection.db.collections();
+      console.log(`Connected to ${collections.length} collections`);
+      
+  } catch (error) {
+      console.error('Detailed MongoDB error:', error);
+      process.exit(1);
+  }
 }
 
-main().catch(err => console.log(err));
+// Start server
+const startServer = async () => {
+  try {
+    await connectDB();
+    app.listen(port, () => {
+      console.log(`Server is running on port: ${port}`);
+    });
+  } catch (error) {
+    console.error('Server startup failed:', error.message);
+    process.exit(1);
+  }
+};
 
-app.listen(port, () => {
-  console.log(`Server is running on port: ${port}`);
-});
+startServer();

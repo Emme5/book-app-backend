@@ -1,6 +1,8 @@
 const cloudinary = require('../config/cloudinary');
 const Favorite = require('../favorites/favorite.model');
-const { Book } = require('./book.model');
+const Book = require('./book.model');
+
+const mongoose = require('mongoose');
 
 const postABook = async (req, res) => {
     try {
@@ -134,10 +136,38 @@ const deleteABook = async (req, res) => {
 // Get all books
 const getAllBooks = async (req, res) => {
     try {
-        const books = await Book.find().sort({ createdAt: -1 });
-        res.status(200).send(books);
+        console.log('Starting getAllBooks...'); // เพิ่ม logging
+
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // แยก queries เพื่อง่ายต่อการ debug
+        const books = await Book.find()
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(); // เพิ่ม lean() เพื่อเพิ่มประสิทธิภาพ
+
+        const total = await Book.countDocuments();
+
+        console.log(`Found ${books.length} books out of ${total} total`); // เพิ่ม logging
+
+        res.status(200).json({
+            success: true, // เพิ่มเพื่อให้ frontend รู้ว่า request สำเร็จ
+            books,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            totalBooks: total
+        });
     } catch (error) {
-        res.status(500).send({ message: "Failed to fetch books" });
+        console.error('Detailed error:', error); // เพิ่ม detailed logging
+        res.status(500).json({ 
+            success: false,
+            message: "Failed to fetch books",
+            error: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
     }
 };
 
@@ -145,13 +175,23 @@ const getAllBooks = async (req, res) => {
 const getSingleBook = async (req, res) => {
     try {
         const { id } = req.params;
+        
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid book ID format" });
+        }
+
         const book = await Book.findById(id);
         if (!book) {
-            return res.status(404).send({ message: "Book not found!" });
+            return res.status(404).json({ message: "Book not found" });
         }
-        res.status(200).send(book);
+
+        res.status(200).json(book);
     } catch (error) {
-        res.status(500).send({ message: "Failed to fetch book" });
+        console.error('Error in getSingleBook:', error);
+        res.status(500).json({ 
+            message: "Failed to fetch book",
+            error: error.message 
+        });
     }
 };
 

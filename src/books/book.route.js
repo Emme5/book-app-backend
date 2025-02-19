@@ -1,5 +1,5 @@
 const express = require('express');
-const { Book } = require('./book.model');
+const Book = require('./book.model');
 const { postABook,
         getAllBooks,
         getSingleBook,

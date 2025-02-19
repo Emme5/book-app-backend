@@ -3,31 +3,35 @@ const mongoose = require('mongoose');
 const bookSchema = new mongoose.Schema({
     title: {
         type: String,
-        required: true,
+        required: [true, 'Title is required'],
+        trim: true
     },
     author: {
         type: String,
-        required: true,
+        required: [true, 'Author is required'],
+        trim: true
     },
     description: {
         type: String,
-        required: true,
+        required: [true, 'Description is required'],
+        trim: true
     },
     category: {
         type: String,
-        required: true,
+        required: [true, 'Category is required'],
+        trim: true
     },
     trending: {
         type: Boolean,
-        required: true,
+        default: false
     },
     recommended: {
         type: Boolean,
-        default: false  // ค่าเริ่มต้นเป็น false
+        default: false
     },
     coverImage: {
         type: String,
-        required: true,
+        required: [true, 'Cover image is required']
     },
     coverImages: {
         type: [String],
@@ -35,20 +39,21 @@ const bookSchema = new mongoose.Schema({
     },
     oldPrice: {
         type: Number,
-        required: true,
+        required: [true, 'Old price is required'],
+        min: [0, 'Price cannot be negative']
     },
     newPrice: {
         type: Number,
-        required: true,
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now,
+        required: [true, 'New price is required'],
+        min: [0, 'Price cannot be negative']
     }
 }, {
-    timestamps: true,
+    timestamps: true
 });
-  
-  const Book = mongoose.model('Book', bookSchema);
 
-  module.exports = Book;
+// เพิ่ม index สำหรับการค้นหา
+bookSchema.index({ title: 'text', author: 'text' });
+
+const Book = mongoose.model('Book', bookSchema);
+
+module.exports = Book;

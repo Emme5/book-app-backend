@@ -1,90 +1,94 @@
 const mongoose = require('mongoose');
 const express = require('express');
 const Order = require('../orders/order.model');
-const { Book } = require('../books/book.model');
+const Book = require('../books/book.model');
+const verifyAdminToken = require('../middleware/verifyAdminToken');
 const router = express.Router();
 
+router.use(verifyAdminToken);
 
 // function to calculate admin stats
 router.get("/", async (req, res) => {
     try {
-        // เช็คการเชื่อมต่อ DB
+        // Debug logs
         console.log('MongoDB State:', mongoose.connection.readyState);
+        console.log('Models available:', Object.keys(mongoose.models));
+        console.log('Order model:', typeof Order);
+        console.log('Book model:', typeof Book);
+
+        // Check DB connection
         if (mongoose.connection.readyState !== 1) {
             throw new Error('Database connection is not ready');
         }
 
-        // เช็ค Model ว่ามีอยู่จริง
-        console.log('Models:', Object.keys(mongoose.models));
-        console.log('Book Model:', Book);
-        console.log('Order Model:', Order);
+        // Individual try-catch for each operation
+        let statsData = {
+            totalOrders: 0,
+            totalSales: 0,
+            trendingBooks: 0,
+            totalBooks: 0,
+            trendingBooksPercentage: 0,
+            monthlySales: []
+        };
 
-        // ทดสอบ query แต่ละตัวแยกกัน
         try {
-            const totalOrders = await Order.countDocuments();
-            console.log('Total Orders:', totalOrders);
+            statsData.totalOrders = await Order.countDocuments() || 0;
+            console.log('Total Orders:', statsData.totalOrders);
 
-            const totalSalesResult = await Order.aggregate([
-                {
-                    $group: {
-                        _id: null,
-                        totalSales: { $sum: "$totalPrice" }
-                    }
+            const salesResult = await Order.aggregate([{
+                $group: {
+                    _id: null,
+                    total: { $sum: "$totalPrice" }
                 }
-            ]);
-            console.log('Total Sales:', totalSalesResult);
+            }]);
+            statsData.totalSales = salesResult[0]?.total || 0;
+            console.log('Total Sales:', statsData.totalSales);
 
-            const totalBooks = await Book.countDocuments();
-            console.log('Total Books:', totalBooks);
+            statsData.totalBooks = await Book.countDocuments() || 0;
+            console.log('Total Books:', statsData.totalBooks);
 
-            const trendingBooksCount = await Book.aggregate([
-                { $match: { trending: true } },
-                { $count: "trendingBooksCount" }
-            ]);
-            console.log('Trending Books:', trendingBooksCount);
+            const trendingCount = await Book.find({ trending: true }).countDocuments();
+            statsData.trendingBooks = trendingCount || 0;
+            console.log('Trending Books:', statsData.trendingBooks);
 
-            const monthlySales = await Order.aggregate([
-                {
-                    $group: {
-                        _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } },
-                        totalSales: { $sum: "$totalPrice" },
-                        totalOrders: { $sum: 1 }
-                    }
-                },
-                { $sort: { _id: 1 } }
-            ]);
-            console.log('Monthly Sales:', monthlySales);
+            if (statsData.totalBooks > 0) {
+                statsData.trendingBooksPercentage = (
+                    (statsData.trendingBooks / statsData.totalBooks) * 100
+                ).toFixed(1);
+            }
 
-            // ส่งข้อมูลกลับ
-            res.status(200).json({
-                totalOrders,
-                totalSales: totalSalesResult[0]?.totalSales ?? 0,
-                trendingBooks: trendingBooksCount[0]?.trendingBooksCount ?? 0,
-                trendingBooksPercentage: totalBooks > 0 
-                    ? ((trendingBooksCount[0]?.trendingBooksCount ?? 0) / totalBooks * 100).toFixed(1)
-                    : 0,
-                totalBooks,
-                monthlySales
-            });
+            const monthlyData = await Order.aggregate([{
+                $group: {
+                    _id: {
+                        year: { $year: "$createdAt" },
+                        month: { $month: "$createdAt" }
+                    },
+                    totalSales: { $sum: "$totalPrice" },
+                    count: { $sum: 1 }
+                }
+            }, {
+                $sort: {
+                    "_id.year": 1,
+                    "_id.month": 1
+                }
+            }]);
+            statsData.monthlySales = monthlyData;
+            console.log('Monthly Sales:', monthlyData);
 
         } catch (queryError) {
             console.error('Query Error:', queryError);
-            throw queryError;
+            throw new Error(`Database query failed: ${queryError.message}`);
         }
 
+        console.log('Sending response:', statsData);
+        res.status(200).json(statsData);
+
     } catch (error) {
-        console.error("Detailed Error:", {
+        console.error("Admin stats error:", {
             message: error.message,
             stack: error.stack,
             name: error.name
         });
-
-        if (error.name === 'MongooseError') {
-            return res.status(500).json({
-                message: "Database error",
-                error: error.message
-            });
-        }
 
         res.status(500).json({
             message: "Failed to fetch admin stats",
