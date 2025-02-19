@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://book-app-frontend-chi.vercel.app',
+    'https://book-store-app-th.vercel.app',
     'https://book-app-backend-alpha.vercel.app'
   ],
   credentials: true,
