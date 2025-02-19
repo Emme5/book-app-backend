@@ -45,6 +45,14 @@ const favoriteRoutes = require('./src/favorites/favorite.route');
 const verifyAdminToken = require('./src/middleware/verifyAdminToken');
 
 // เพิ่มหลัง routes ทั้งหมด
+
+app.use("/api/books", bookRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/auth", userRoutes);
+app.use("/api/admin", verifyAdminToken, adminRoutes);
+app.use("/api", stripeRoutes);
+app.use("/api/favorites", favoriteRoutes);
+
 app.use((err, req, res, next) => {
   console.error('Global error:', err);
   res.status(500).json({
@@ -53,15 +61,6 @@ app.use((err, req, res, next) => {
       error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
   });
 });
-
-app.use("/api/books", bookRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/auth", userRoutes);
-app.use("/api/admin", verifyAdminToken, adminRoutes);
-app.use("/api/admin", adminRoutes);
-app.use("/api", stripeRoutes);
-app.use("/api/favorites", favoriteRoutes);
-
 // MongoDB Connection
 async function connectDB() {
   try {

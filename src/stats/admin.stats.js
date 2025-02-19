@@ -5,8 +5,6 @@ const Book = require('../books/book.model');
 const verifyAdminToken = require('../middleware/verifyAdminToken');
 const router = express.Router();
 
-router.use(verifyAdminToken);
-
 // function to calculate admin stats
 router.get("/", async (req, res) => {
     try {
