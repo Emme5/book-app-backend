@@ -4,7 +4,7 @@ const cors = require("cors");
 const mongoose = require('mongoose');
 const path = require('path');
 
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 'https://book-app-backend-alpha.vercel.app';
 require('dotenv').config();
 
 // Middleware
