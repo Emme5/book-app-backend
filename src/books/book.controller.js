@@ -136,37 +136,31 @@ const deleteABook = async (req, res) => {
 // Get all books
 const getAllBooks = async (req, res) => {
     try {
-        console.log('Starting getAllBooks...'); // เพิ่ม logging
-
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 10;
+        const limit = parseInt(req.query.limit) || 20;
         const skip = (page - 1) * limit;
 
-        // แยก queries เพื่อง่ายต่อการ debug
         const books = await Book.find()
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
-            .lean(); // เพิ่ม lean() เพื่อเพิ่มประสิทธิภาพ
+            .lean();
 
         const total = await Book.countDocuments();
 
-        console.log(`Found ${books.length} books out of ${total} total`); // เพิ่ม logging
-
         res.status(200).json({
-            success: true, // เพิ่มเพื่อให้ frontend รู้ว่า request สำเร็จ
+            success: true,
             books,
             currentPage: page,
             totalPages: Math.ceil(total / limit),
             totalBooks: total
         });
     } catch (error) {
-        console.error('Detailed error:', error); // เพิ่ม detailed logging
+        console.error('Detailed error:', error);
         res.status(500).json({ 
             success: false,
             message: "Failed to fetch books",
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            error: error.message
         });
     }
 };
