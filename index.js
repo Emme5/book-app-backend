@@ -11,9 +11,8 @@ require('dotenv').config();
 app.use(express.json());
 app.use(cors({
   origin: [
-    'http://localhost:5173',
     'https://book-store-app-th.vercel.app',
-    'https://book-app-backend-alpha.vercel.app'
+    'https://book-app-backend-alpha.vercel.app',
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
