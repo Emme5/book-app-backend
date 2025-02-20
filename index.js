@@ -11,7 +11,7 @@ require('dotenv').config();
 app.use(express.json());
 app.use(cors({
   origin: [
-    'https://book-store-app-th.vercel.app',
+    'https://book-store-app-th.vercel.app', // เพิ่มใช้นี้ http://localhost:5000 แทนหากจะแก้ไขในคอมตัวเอง
     'https://book-app-backend-alpha.vercel.app',
   ],
   credentials: true,
