@@ -4,15 +4,16 @@ const cors = require("cors");
 const mongoose = require('mongoose');
 const path = require('path');
 
-const port = process.env.PORT || 'https://book-app-backend-alpha.vercel.app';
+const port = process.env.PORT || 5000;
 require('dotenv').config();
 
 // Middleware
 app.use(express.json());
 app.use(cors({
   origin: [
-    'https://book-store-app-th.vercel.app', // เพิ่มใช้นี้ http://localhost:5000 แทนหากจะแก้ไขในคอมตัวเอง
-    'https://book-app-backend-alpha.vercel.app',
+    'http://localhost:5173',
+    'https://book-store-app-th.vercel.app',
+    'https://book-app-backend-alpha.vercel.app'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
